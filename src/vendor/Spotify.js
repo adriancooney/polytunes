@@ -7,6 +7,7 @@ const Playlist = require("../library/Playlist");
 const Track = require("../library/Track");
 
 const VENDOR_NAME = "Spotify";
+const PAGE_SIZE = 100; // Playlist track page size
 
 class SpotifyLibrary extends Library {
     constructor(api) {
@@ -63,11 +64,12 @@ class SpotifyPlaylist extends Playlist {
         this.api = api;
     }
 
-    addTrack(track) {
+    addTrack(track, force = false) {
         // If it's already a spotify track, don't bother
         // searching for the ID.
-        if(track instanceof SpotifyTrack)
+        if(track instanceof SpotifyTrack) {
             return super.addTrack(track)
+        }
 
         // Find the track in spotify's database
         debug("Searching for track '%s' by %s.", track.name, track.artist);
@@ -83,11 +85,78 @@ class SpotifyPlaylist extends Playlist {
             // relevance.
             const targetTrack = SpotifyTrack.fromAPI(tracks[0]);
 
-            // We have our spotify track, now add it the user's library
-            // It's a real shame we have to have the username to create
-            // a spotify playlist. Like, why?
-            debug("Adding track '%s' to playlist %s (%s)", targetTrack.name, this.name, this.id);
-            return this.api.addTracksToPlaylist(this.api.user.id, this.id, [targetTrack.uri]);
+            // Add the track if it's not already in the playlist (or if force is toggled)
+            if(force || !this.hasTrack(targetTrack)) {
+                // We have our spotify track, now add it the user's library
+                // It's a real shame we have to have the username to create
+                // a spotify playlist. Like, why?
+                debug("Adding track '%s' to playlist %s (%s)", targetTrack.name, this.name, this.id);
+                return this.api.addTracksToPlaylist(this.api.user.id, this.id, [targetTrack.uri]).then(() => {
+                    // Add it to the playlist
+                    super.addTrack(targetTrack);
+                });
+            } else {
+                // Fail because track already exists
+                return Promise.reject(new Playlist.TrackAlreadyExists(targetTrack, this));
+            }
+        });
+    }
+
+    getTracks() {
+        debug("Getting tracks for %s playlist (%s).", this.name, this.id);
+        // Get the tracks the first time and get the total
+        return this.getTracksPaged().then(data => {
+            const total = data.body.total;
+
+            debug("Playlist %s has %d tracks (%d pages)", this.name, total, Math.ceil(total/PAGE_SIZE));
+
+            // Merge the first tracks
+            var tracks = data.body.items.map(item => SpotifyTrack.fromAPI(item.track));
+            var cursor = data.body.items.length;
+
+            return (function page() {
+                if(cursor < total) {
+                    return this.getTracksPaged(PAGE_SIZE, cursor).then(data => {
+                        // Update the cursor
+                        cursor += data.body.items.length;
+
+                        // Push the SpotifyTracks
+                        tracks = tracks.concat(data.body.items.map(item => SpotifyTrack.fromAPI(item.track)));
+                    }).then(page.bind(this));
+                } else {
+                    debug("Got %d of %d tracks for %s playlist (%s).", cursor, total, this.name, this.id);
+
+                    // Save the tracks
+                    this.addTracks(tracks);
+
+                    // Debug print some
+                    tracks.slice(18).forEach(track => {
+                        debug(" -> '%s' by %s (%s)", track.name, track.artist, track.id);
+                    });
+
+                    if(tracks.length > 18)
+                        debug(" -> %d more..", tracks.length - 18);
+
+                    // Resolve the tracks
+                    return Promise.resolve(tracks);
+                }
+            }.bind(this))();
+        });
+    }
+
+    getTracksPaged(limit = PAGE_SIZE, offset = 0) {
+        debug("Getting tracks from %s playlist (%s) with limit = %d, offset = %d.", this.name, this.id, limit, offset);
+        return this.api.getPlaylistTracks(this.api.user.id, this.id, { limit, offset });
+    }
+
+    hasTrack(track) {
+        if(!(track instanceof SpotifyTrack))
+            throw new Error("SpotifyPlaylist#hasTrack can only test if SpotifyTracks are in the playlist.");
+
+        debug("Testing if %s playlist (%s) has track '%s' by %s (%s)", this.name, this.id, this.tracks.length, track.name, track.artist, track.id);
+        return this.tracks.find(tr => {
+            console.log("Is %s === %s -> %s", track.id, tr.id, track.id === tr.id);
+            return track.id === tr.id
         });
     }
 
@@ -108,10 +177,19 @@ class SpotifyPlaylist extends Playlist {
         const playlist = new SpotifyPlaylist(data.name, data.id, api);      
         
         // Add the fields
-        _.without(Object.keys(data), ["tracks", "id", "name"])
-            .forEach(key => playlist[key] = data[key])
+        _.without(Object.keys(data), "tracks", "id", "name")
+            .forEach(key => playlist[key] = data[key]);
 
         return playlist;
+    }
+
+    toString() {
+        const flags = [this.id];
+
+        if(this.public) flags.push("public");
+        if(this.collaborative) flags.push("collaborative");
+
+        return `${this.name} created by ${this.owner.id}. (${flags.join(", ")})`;
     }
 }
 

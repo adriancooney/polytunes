@@ -1,3 +1,5 @@
+const debug = require("debug")("library:playlist");
+
 class Playlist {
     constructor(name) {
         this.name = name;
@@ -9,7 +11,7 @@ class Playlist {
     }
 
     addTracks(tracks) {
-        tracks.forEach(track => this.addTrack.bind(this, track));
+        tracks.forEach(this.addTrack.bind(this));
     }
 
     getTracks() {
@@ -17,4 +19,13 @@ class Playlist {
     }
 }
 
+class TrackAlreadyExists extends Error {
+    constructor(track, playlist) {
+        super(`Track '${track.name}' by ${track.artist} already exists in playlist ${playlist.name}.`);
+        this.track = track;
+        this.playlist = playlist;
+    }
+}
+
 module.exports = Playlist;
+module.exports.TrackAlreadyExists = TrackAlreadyExists;

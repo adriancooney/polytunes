@@ -25,19 +25,31 @@ describe("Spotify", () => {
             }).then(lib => library = lib);
     });
 
-    describe("#addTrack", () => {
-        it("should add a track to a playlist", () => {
-            const track = new Track("Alright", "Kendrick Lamar");
+    describe("Library", () => {
+        describe("#addTrack", () => {
+            it("should add a track to a playlist", () => {
+                const track = new Track("Alright", "Kendrick Lamar");
+                const playlist = library.playlists[Object.keys(library.playlists)[0]];
 
-            return library.playlists[Object.keys(library.playlists)[0]].addTrack(track);
+                return playlist.addTrack(track);
+            });
+        });
+
+        describe("#createPlaylist", () => {
+            it("should add a track to a playlist", () => {
+                const playlist = new Playlist("Hello world!");
+
+                return library.addPlaylist(playlist);
+            });
         });
     });
 
-    describe("#createPlaylist", () => {
-        it("should add a track to a playlist", () => {
-            const playlist = new Playlist("Hello world!");
-
-            return library.addPlaylist(playlist);
+    describe("Playlist", () => {
+        describe("#getTracks", () => {
+            it("should get tracks for a playlist", () => {
+                const playlist = library.playlists[Object.keys(library.playlists)[0]];
+                return playlist.getTracks();
+            });
         });
     });
 });

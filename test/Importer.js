@@ -24,7 +24,7 @@ describe("Importer", () => {
             ]).then(([apple, spotify]) => {
                 const importer = new Importer(apple, spotify);
 
-                return importer.import(apple.getPlaylists());
+                return importer.importPlaylist(apple.getPlaylist("House"));
             })
         });
     });

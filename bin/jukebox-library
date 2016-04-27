@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+
+const program = require("commander");
+const drivers = require("../src/bin/drivers.js");
+const logger = require("../src/bin/logger.js");
+
+program
+    .option("-d, --driver <driver>", "The library driver. See `list-drivers` for available drivers and configuration.")
+    .option("--apple-library <path>", "The path to your apple library (override APPLE_LIBRARY env variable).")
+    .option("--spotify-client-id <clientId>", "Specify the client ID (override SPOTIFY_CLIENT_ID).")
+    .option("--spotify-client-secret <clientSecret>", "Specify the client ID (override SPOTIFY_CLIENT_SECRET).")
+    .option("--spotify-refresh-token <refreshToken>", "Specify the client ID (override SPOTIFY_REFRESH_TOKEN).");
+
+program.command("playlists")
+    .action(() => {
+        if(!program.driver)
+            logger.fail(new Error("Please specify the driver with -d or --driver flag. See `list-drivers` command for availabel drivers."));
+
+        drivers.getLibrary(program.driver, program).then(library => {
+            logger.logAction("Getting %s playlists..", library.getVendorName());
+            return library.getPlaylists();
+        }).then(playlists => {
+            playlists.forEach(playlist => {
+                logger.log(logger.indent(playlist.toString(), 1, undefined, "-> "));
+            });
+        }).catch(logger.fail)
+    });
+
+program.parse(process.argv);

@@ -75,11 +75,16 @@ class AppleLibrary extends Library {
 class ApplePlaylist extends Playlist {
     static fromItunes(data) {
         const playlist = new ApplePlaylist(data.Name);
+        playlist.trackCount = data["Playlist Items"].length;
 
         if(data.Description)
             playlist.description = data.Description;
 
         return playlist;
+    }
+
+    toString() {
+        return `${this.name}${ this.description ? " - " + this.description : ""} (${this.trackCount} tracks).`;
     }
 }
 
