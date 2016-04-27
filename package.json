@@ -1,5 +1,5 @@
 {
-  "name": "apple-music-to-spotify",
+  "name": "polytunes",
   "version": "0.0.0",
   "description": "Move your Apple Music playlist to Spotify.",
   "main": "index.js",
@@ -7,7 +7,6 @@
     "commander": "^2.9.0",
     "debug": "^2.2.0",
     "lodash": "^4.11.1",
-    "node-fetch": "^1.5.1",
     "plist-parser": "^0.9.2",
     "spotify-web-api-node": "^2.3.0"
   },
