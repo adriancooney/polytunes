@@ -10,7 +10,7 @@ The following services are support by polytunes.
 | Spotify | :white_check_mark: | :white_check_mark: |
 
 ### Usage
-Polytunes is a command line tool:
+Polytunes is a command line tool the runs on top of Node.js v6.0.0 and above:
 
     $ npm install -g polytunes
 
