@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const drivers = require("../vendor");
+const drivers = require("../drivers");
 
 const SPOTIFY_ENV = {
     clientId: "SPOTIFY_CLIENT_ID",

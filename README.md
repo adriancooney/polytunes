@@ -4,17 +4,17 @@ Polytunes is a tool that allows you to liberate your music from third party serv
 ### Support
 The following services are support by polytunes.
 
-| Service | Import From | Import To |
-|---------|-------------|-----------|
+| Service |  Import From  |  Import To  |
+|---------|:-------------:|:-----------:|
 | Apple Music | :white_check_mark: | |
 | Spotify | :white_check_mark: | :white_check_mark: |
 
 ### Usage
-Polytunes is a command line tool (and has an API available):
+Polytunes is a command line tool:
 
-    $ npm install polytunes
+    $ npm install -g polytunes
 
-To move from Apple Music to Spotify:
+To move you library from Apple Music to Spotify, grab a tea and run:
 
     $ polytunes --from apple --to spotify
     [*] Collecting libraries..

@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "Move your Apple Music playlist to Spotify.",
   "main": "index.js",
+  "bin": {
+    "polytunes": "./bin/polytunes"
+  },
   "dependencies": {
     "commander": "^2.9.0",
     "debug": "^2.2.0",

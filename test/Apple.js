@@ -1,5 +1,5 @@
 const path = require("path");
-const Apple = require("../src/vendor/Apple");
+const Apple = require("../src/drivers/Apple");
 
 const EXAMPLE_LIBRARY = path.join(__dirname, "data/Library.xml");
 

@@ -1,7 +1,7 @@
 const SpotifyAPI = require("spotify-web-api-node");
 const Track = require("../src/library/Track");
 const Playlist = require("../src/library/Playlist");
-const SpotifyLibrary = require("../src/vendor/Spotify");
+const SpotifyLibrary = require("../src/drivers/Spotify");
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;

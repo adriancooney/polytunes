@@ -1,8 +1,8 @@
 const path = require("path");
 
 const Importer = require("../src/Importer");
-const SpotifyLibrary = require("../src/vendor/Spotify");
-const AppleLibrary = require("../src/vendor/Apple");
+const SpotifyLibrary = require("../src/drivers/Spotify");
+const AppleLibrary = require("../src/drivers/Apple");
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
