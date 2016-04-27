@@ -7,6 +7,14 @@ const SPOTIFY_ENV = {
     refreshToken: "SPOTIFY_REFRESH_TOKEN"
 };
 
+function addCommandOptions(program) {
+    program
+        .option("--apple-library <path>", "The path to your apple library (override APPLE_LIBRARY env variable).")
+        .option("--spotify-client-id <clientId>", "Specify the Spotify client ID (override SPOTIFY_CLIENT_ID).")
+        .option("--spotify-client-secret <clientSecret>", "Specify the Spotify client secret (override SPOTIFY_CLIENT_SECRET).")
+        .option("--spotify-refresh-token <refreshToken>", "Specify the Spotify client refresh token (override SPOTIFY_REFRESH_TOKEN).");
+}
+
 function getLibrary(type, configuration) {
     switch(type) {
         case "spotify":
@@ -38,5 +46,6 @@ function pickFromEnv(vars) {
 }
 
 module.exports = {
-    getLibrary
+    getLibrary,
+    addCommandOptions
 };

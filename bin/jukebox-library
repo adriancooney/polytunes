@@ -5,11 +5,10 @@ const drivers = require("../src/bin/drivers.js");
 const logger = require("../src/bin/logger.js");
 
 program
-    .option("-d, --driver <driver>", "The library driver. See `list-drivers` for available drivers and configuration.")
-    .option("--apple-library <path>", "The path to your apple library (override APPLE_LIBRARY env variable).")
-    .option("--spotify-client-id <clientId>", "Specify the client ID (override SPOTIFY_CLIENT_ID).")
-    .option("--spotify-client-secret <clientSecret>", "Specify the client ID (override SPOTIFY_CLIENT_SECRET).")
-    .option("--spotify-refresh-token <refreshToken>", "Specify the client ID (override SPOTIFY_REFRESH_TOKEN).");
+    .option("-d, --driver <driver>", "The library driver. See `list-drivers` for available drivers and configuration.");
+
+// Add the options
+drivers.addCommandOptions(program);
 
 program.command("playlists")
     .action(() => {

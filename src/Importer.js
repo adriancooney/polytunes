@@ -1,34 +1,46 @@
 const debug = require("debug")("library:importer")
+const EventEmitter = require("events").EventEmitter;
 const Library = require("./library/Library");
 const Playlist = require("./library/Playlist");
 
 const THROTTLE = 250;
 
-class Importer {
+class Importer extends EventEmitter {
     constructor(from, target) {
+        super();
         this.from = from;
         this.target = target;
     }
 
-    import(library) {
+    import() {
         debug("Import %s library to %s.", this.from.getVendorName(), this.target.getVendorName());
-        return this.importPlaylists(library.getPlaylists());
+        return this.from.getPlaylists().then(this.importPlaylists.bind(this));
     }
 
     importPlaylists(playlists) {
-        const stats = [];
+        const playlistStats = [];
 
         return playlists.reduce((acc, playlist) => {
             return acc.then(this.importPlaylist.bind(this, playlist))
-                .then(stat => stats.push(stat));
+                .then(stat => playlistStats.push(stat));
         }, Promise.resolve()).then(() => {
-            const totalImportedTracks = stats.reduce((total, stat) => total + stat.importedTracks, 0);
-            const totalTracks = stats.reduce((total, stat) => total + stat.totalTracks, 0);
-            const playlistCount = playlists.length;
+            const stats = playlistStats.reduce((total, stat) => {
+                total.totalImportedTracks += stat.importedTracks;
+                total.totalDuplicates += stat.duplicates;
+                total.totalTracks += stat.totalTracks;
+                total.totalUnmatched += stat.unmatchedTracks.length;
 
-            debug("Imported %d of %d songs to %d playlists.", totalImportedTracks, totalTracks, playlistCount);
+                return total;
+            } , { totalImportedTracks: 0, totalDuplicates: 0, totalTracks: 0, totalUnmatched: 0 });
 
-            stats.forEach(({ playlist, importedTracks, unmatchedTracks }) => {
+            stats.playlists = playlistStats;
+            stats.playlistCount = playlists.length;
+            stats.to = this.target;
+            stats.from = this.from;
+
+            debug("Imported %d of %d songs to %d playlists.", stats.totalImportedTracks, stats.totalTracks, stats.playlistCount);
+
+            stats.playlists.forEach(({ playlist, importedTracks, unmatchedTracks }) => {
                 debug("    %s playlist (%s) has %d unmatched tracks:", playlist.name, playlist.id, unmatchedTracks.length);
 
                 unmatchedTracks.forEach(track => {
@@ -42,7 +54,8 @@ class Importer {
 
     importPlaylist(playlist) {
         debug("Importing playlist '%s' to %s library (%d tracks).", playlist.name, this.target.getVendorName(), playlist.tracks.length);
-
+        this.emit("playlist:importing", playlist);
+        
         let targetPlaylist = this.target.getPlaylist(playlist.name);
 
         if(!targetPlaylist) {
@@ -76,21 +89,27 @@ class Importer {
                         // Push an unmatched track
                         if(error instanceof Library.TrackNotFound) {
                             debug("No match! Track '%s' by %s not found on import, skipping.", track.name, track.artist);
+                            this.emit("playlist:nomatch", targetPlaylist, track);
                             stats.unmatchedTracks.push(track);
                         } else if(error instanceof Playlist.TrackAlreadyExists) {
                             debug("Track '%s' by %s already exists in playlist %s, ignoring.", track.name, track.artist, playlist.name);
+                            this.emit("playlist:duplicate", targetPlaylist, track);
                             stats.duplicates++;
                         } else {
                             return Promise.reject(error);
                         }
                     });
-            }, Promise.resolve()).then(() => stats);
+            }, Promise.resolve()).then(() => {
+                this.emit("playlist:imported", targetPlaylist, stats);
+
+                return stats;
+            });
         });
     }
 
     importTrack(targetPlaylist, track) {
         debug("Importing track '%s' to %s playlist '%s'.", track.name, this.target.getVendorName(), targetPlaylist.name);
-        return targetPlaylist.addTrack(track);
+        return targetPlaylist.addTrack(track).then(this.emit.bind(this, "track:imported", targetPlaylist, track));
     }
 }
 

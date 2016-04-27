@@ -155,7 +155,6 @@ class SpotifyPlaylist extends Playlist {
 
         debug("Testing if %s playlist (%s) has track '%s' by %s (%s)", this.name, this.id, this.tracks.length, track.name, track.artist, track.id);
         return this.tracks.find(tr => {
-            console.log("Is %s === %s -> %s", track.id, tr.id, track.id === tr.id);
             return track.id === tr.id
         });
     }

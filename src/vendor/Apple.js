@@ -69,6 +69,10 @@ class AppleLibrary extends Library {
             })
         });
     }
+
+    getPlaylists() {
+        return Promise.resolve(super.getPlaylists());
+    }
 }
 
 

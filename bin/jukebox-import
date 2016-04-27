@@ -1,7 +1,93 @@
 #!/usr/bin/env node
 
 const program = require("commander");
+const drivers = require("../src/bin/drivers");
+const logger = require("../src/bin/logger");
+
+const Importer = require("../src/Importer");
+
+// Add the driver configuration options
+drivers.addCommandOptions(program);
 
 program
-    .usage("--from <driver> --to <driver>")
-    .option("")
+    .option("--from <driver>", "The service to import the music from")
+    .option("--to <driver>", "The service to import the music to.")
+    .usage("--from <driver> --to <driver> [playlists]")
+    .arguments("[playlists]");
+
+function doImport(playlistsToImport) {
+    ["to", "from"].forEach(imp => {
+        if(!program[imp])
+            logger.fail(new Error(`Please specify the service to import the music ${imp} using the --${imp} option. ` +
+                "See `list-drivers` for a list of available services."));
+    })
+
+    logger.logAction("Collecting libraries..");
+
+    Promise.all([
+        drivers.getLibrary(program.from, program),
+        drivers.getLibrary(program.to, program)
+    ]).then(([fromLibrary, toLibrary]) => {
+        const importer = new Importer(fromLibrary, toLibrary);
+
+        importer.on("playlist:importing", playlist => {
+            logger.logAction("Importing %s playlist: '%s'", fromLibrary.getVendorName(), playlist.name);
+        });
+
+        importer.on("track:imported", (playlist, track) => {
+            logger.log("  -> Track '%s' by %s imported to %s playlist '%s'.", track.name, track.artist, toLibrary.getVendorName(), playlist.name);
+        });
+
+        importer.on("playlist:imported", (playlist, stats) => {
+            logger.log("  >> %s playlist %s imported to %s (%d duplicates, %d unmatched).", fromLibrary.getVendorName(), playlist.name, toLibrary.getVendorName(), stats.duplicates, stats.unmatchedTracks.length);
+        });
+
+        importer.on("playlist:nomatch", (playlist, track) => {
+            logger.log("  -! No match for track on '%s' by %s from %s %s playlist on %s.", track.name, track.artist, fromLibrary.getVendorName(), playlist.name, toLibrary.getVendorName());
+        });
+
+        importer.on("playlist:duplicate", (playlist, track) => {
+            logger.log("  -+ Track '%s' by %s already exists in %s %s playlist, ignoring.", track.name, track.artist, toLibrary.getVendorName(), playlist.name);
+        });
+
+        // Check if each playlists exists
+        if(playlistsToImport) {
+            playlistsToImport = playlistsToImport.split(" ").map(s => s.trim()).filter(s => s);
+            return fromLibrary.getPlaylists().then(playlists => {
+                playlistsToImport = playlistsToImport.map(pl => {
+                    const targetPlaylist = fromLibrary.getPlaylist(pl);
+
+                    if(!targetPlaylist)
+                        throw new Error(`Unknown playlist ${pl} in ${fromLibrary.getVendorName()} library.`);
+
+                    return targetPlaylist;
+                });
+
+                logger.logAction("Importing %d playlists from your %s library to your %s library.", playlistsToImport.length, fromLibrary.getVendorName(), toLibrary.getVendorName())
+                return importer.importPlaylists(playlistsToImport);
+            });
+        } else {
+            logger.logAction("Importing from your %s library to your %s library.", fromLibrary.getVendorName(), toLibrary.getVendorName());
+            return importer.import();
+        }
+    }).then(stats => {
+        logger.logComplete("Import complete. Imported %d of %d songs to %d %s playlists (ignored %d duplicates).", 
+            stats.totalImportedTracks, stats.totalTracks, stats.playlistCount, stats.to.getVendorName(), stats.totalDuplicates);
+
+        if(stats.totalUnmatched > 0) {
+            logger.logWarning("Some tracks could not be matched on %s.", stats.to.getVendorName());
+            stats.playlists.forEach(({ playlist, unmatchedTracks }) => {
+                logger.log("  >>  %s playlist %s:", stats.from.getVendorName(), playlist.name);
+                unmatchedTracks.forEach(track => {
+                    logger.log("    -! %s track '%s' by %s.", stats.from.getVendorName(), track.name, track.artist);
+                });
+            })
+        }
+    }).catch(logger.fail);
+}
+
+program.action(doImport);
+program.parse(process.argv);
+
+if(program.args.length === 0)
+    doImport();

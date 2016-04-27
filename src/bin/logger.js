@@ -1,5 +1,11 @@
+const debug = require("debug")("library:logger");
+
 function logAction() {
     return logSymbol.apply(null, ["*"].concat(Array.prototype.slice.call(arguments)));
+}
+
+function logComplete() {
+    return logSymbol.apply(null, ["+"].concat(Array.prototype.slice.call(arguments)));
 }
 
 function logError() {
@@ -16,6 +22,7 @@ function log() {
 
 function fail(error, code = 1) {
     logError(`Error: ${error.message}`);
+    debug(error.stack);
     process.exit(code);
 }
 
@@ -28,7 +35,9 @@ function indent(lines, count = 1, str = "    ", bullet) {
 
 module.exports = {
     logAction,
+    logComplete,
     log,
     fail,
-    indent
+    indent,
+    logWarning: logError
 };
