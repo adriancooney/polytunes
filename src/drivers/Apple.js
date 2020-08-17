@@ -6,6 +6,8 @@ const Library = require("../library/Library");
 const Playlist = require("../library/Playlist");
 const Track = require("../library/Track");
 
+const trackRegex = require('./trackRegex');
+
 class AppleLibrary extends Library {
     getVendorName() {
         return "Apple";
@@ -28,7 +30,7 @@ class AppleLibrary extends Library {
             Playlists.map(playlist => {
                 const items = playlist["Playlist Items"];
 
-                if(!items || items.length === 0)
+                if (!items || items.length === 0)
                     return debug("Ignoring playlist: %s (empty)", playlist.Name);
 
                 const applePlaylist = ApplePlaylist.fromItunes(playlist);
@@ -39,7 +41,7 @@ class AppleLibrary extends Library {
                     const trackId = track["Track ID"];
                     const selectedTrack = trackIndex[trackId];
 
-                    if(selectedTrack) {
+                    if (selectedTrack) {
                         debug("Adding track %d to playlist %s", trackId, playlist.Name);
                         // Add the tracks
                         applePlaylist.addTrack(selectedTrack);
@@ -60,7 +62,7 @@ class AppleLibrary extends Library {
     static parsePlist(path) {
         return new Promise((resolve, reject) => {
             fs.readFile(path, "utf8", (err, data) => {
-                if(err) return reject(err);
+                if (err) return reject(err);
 
                 const parser = new PlistParser(data);
 
@@ -81,14 +83,14 @@ class ApplePlaylist extends Playlist {
         const playlist = new ApplePlaylist(data.Name);
         playlist.trackCount = data["Playlist Items"].length;
 
-        if(data.Description)
+        if (data.Description)
             playlist.description = data.Description;
 
         return playlist;
     }
 
     toString() {
-        return `${this.name}${ this.description ? " - " + this.description : ""} (${this.trackCount} tracks).`;
+        return `${this.name}${this.description ? " - " + this.description : ""} (${this.trackCount} tracks).`;
     }
 }
 
@@ -101,7 +103,10 @@ class AppleTrack extends Track {
             return trimmed;
         }, {});
 
-        return new Track(data.Name, data.Artist, data.Album);
+        return new Track(
+            trackRegex.removeFeatFromName(data.Name),
+            trackRegex.removeAndFromArtist(data.Artist),
+            data.Album);
     }
 }
 
